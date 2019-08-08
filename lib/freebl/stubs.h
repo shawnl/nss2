@@ -8,6 +8,8 @@
  * These symbols are overridden once real NSPR, and libutil are attached.
  */
 
+#define _STUBS_H_ 1
+
 #ifndef _STUBS_H
 #define _STUBS_H_ 1
 
