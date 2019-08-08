@@ -24,3 +24,4 @@ lib/ssl/OBJS/*
 lib/*/OBJS/*
 lib/*/*/OBJS/*
 cmd/*/OBJS/*
+*/OBJS/*
