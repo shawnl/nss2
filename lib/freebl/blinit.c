@@ -29,6 +29,9 @@ static PRBool arm_aes_support_ = PR_FALSE;
 static PRBool arm_sha1_support_ = PR_FALSE;
 static PRBool arm_sha2_support_ = PR_FALSE;
 static PRBool arm_pmull_support_ = PR_FALSE;
+/* These are usually synonymous (POWER 8), but lets be pendantic. */
+static PRBool ppc_207_support_  = PR_FALSE;
+static PRBool ppc_vcrypto_support_ = PR_FALSE;
 
 #ifdef NSS_X86_OR_X64
 /*
@@ -92,7 +95,7 @@ CheckX86CPUSupport()
 #endif /* NSS_X86_OR_X64 */
 
 /* clang-format off */
-#if defined(__aarch64__) || defined(__arm__)
+#if defined(__aarch64__) || defined(__arm__) || defined(__powerpc__) || defined(__powerpc64__)
 #ifndef __has_include
 #define __has_include(x) 0
 #endif
@@ -114,7 +117,7 @@ static unsigned long (*getauxval)(unsigned long) = NULL;
 #define AT_HWCAP 16
 #endif
 
-#endif /* defined(__aarch64__) || defined(__arm__) */
+#endif /* defined(__aarch64__) || defined(__arm__) || defined(__powerpc__) || defined(__powerpc64__)*/
 /* clang-format on */
 
 #if defined(__aarch64__)
@@ -225,6 +228,34 @@ CheckARMSupport()
 }
 #endif /* defined(__arm__) */
 
+#if defined(__powerpc__) || defined(__powerpc64__)
+
+#ifndef PPC_FEATURE2_VEC_CRYPTO
+# define PPC_FEATURE2_VEC_CRYPTO    0x02000000
+#endif
+#ifndef PPC_FEATURE2_ARCH_2_07
+#  define PPC_FEATURE2_ARCH_2_07          0x80000000
+#endif
+
+void
+CheckPPCSupport()
+{
+    char *disable_hw_aes = PR_GetEnvSecure("NSS_DISABLE_HW_AES");
+#if defined(__GLIBC__) && defined(__GNUC__) && __GNUC__ >= 6
+    /* Returns 0 if glibc support doesn't exist, so we can
+     * only trust positive results.  */
+    ppc_207_support_ = __builtin_cpu_supports("arch_2_07");
+    ppc_vcrypto_support_ = __builtin_cpu_supports("vcrypto") && disable_hw_aes == NULL;
+    if (!ppc_207_support_ && !ppc_vcrypto_support_)
+#endif
+    {
+        long hwcaps = getauxval(AT_HWCAP);
+        ppc_207_support_ = hwcaps & PPC_FEATURE2_ARCH_2_07;
+        ppc_vcrypto_support_ = hwcaps & PPC_FEATURE2_VEC_CRYPTO && disable_hw_aes == NULL;
+    }
+}
+#endif /* defined(__powerpc__) || defined(__powerpc64__) */
+
 // Enable when Firefox can use it for Android API 16 and 17.
 // #if defined(__ANDROID__) && (defined(__arm__) || defined(__aarch64__))
 // #include <cpu-features.h>
@@ -300,6 +331,16 @@ arm_sha2_support()
 {
     return arm_sha2_support_;
 }
+PRBool
+ppc_207_support()
+{
+    return ppc_207_support_;
+}
+PRBool
+ppc_vcrypto_support()
+{
+    return ppc_vcrypto_support_;
+}
 
 static PRStatus
 FreeblInit(void)
@@ -308,6 +349,8 @@ FreeblInit(void)
     CheckX86CPUSupport();
 #elif (defined(__aarch64__) || defined(__arm__))
     CheckARMSupport();
+#elif (defined(__powerpc__) || defined(__powerpc64__))
+    CheckPPCSupport();
 #endif
     return PR_SUCCESS;
 }

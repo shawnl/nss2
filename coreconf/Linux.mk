@@ -48,12 +48,22 @@ ifndef INTERNAL_TOOLS
 	CROSS_COMPILE = 1
 endif
 endif
-ifeq (,$(filter-out ppc64 ppc64le,$(OS_TEST)))
-	CPU_ARCH	= ppc
+ifeq ($(OS_TEST),ppc64)
 ifeq ($(USE_64),1)
-	ARCHFLAG	= -m64
-endif
+	ARCHFLAG        = -m64
+	CPU_ARCH    = ppc64
 else
+	CPU_ARCH        = ppc32
+endif #USE_64
+else #OS_TEST
+ifeq ($(OS_TEST),ppc64le)
+ifeq ($(USE_64),1)
+	ARCHFLAG        = -m64
+	CPU_ARCH        = ppc64le
+else
+	MAKE_AN_ERROR_YOU_NEED_TO_USE_USE_64_1
+endif #USE_64
+else #OS_TEST
 ifeq ($(OS_TEST),alpha)
         OS_REL_CFLAGS   = -D_ALPHA_
 	CPU_ARCH	= alpha
@@ -100,7 +110,7 @@ endif
 endif
 endif
 endif
-
+endif
 
 ifneq ($(OS_TARGET),Android)
 LIBC_TAG		= _glibc

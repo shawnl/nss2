@@ -59,8 +59,14 @@ typedef struct gcmHashContextStr gcmHashContext;
 typedef SECStatus (*ghash_t)(gcmHashContext *, const unsigned char *,
                              unsigned int);
 pre_align struct gcmHashContextStr {
-#ifdef NSS_X86_OR_X64
+#if defined(NSS_X86_OR_X64)
     __m128i x, h;
+#elif defined(USE_PPC_GCM)
+    // There is an avoidance of uint128_t type here because of GCC limitations
+    uint8_t table[16 * 16];
+    uint64_t H[2]; // native endianness
+    uint64_t shash[2];
+    uint64_t bytes;
 #endif
     uint64_t x_low, x_high, h_high, h_low;
     unsigned char buffer[MAX_BLOCK_SIZE];

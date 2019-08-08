@@ -243,10 +243,16 @@ ifeq ($(CPU_ARCH),arm)
     MPI_SRCS += mpi_arm.c
 endif
 ifeq ($(CPU_ARCH),ppc)
-ifdef USE_64
-    DEFINES += -DNSS_NO_INIT_SUPPORT
-endif # USE_64
 endif # ppc
+ifeq ($(CPU_ARCH),ppc64)
+	DEFINES += -DNSS_NO_INIT_SUPPORT
+endif # ppc64
+ifeq ($(CPU_ARCH),ppc64le)
+	DEFINES += -DNSS_NO_INIT_SUPPORT
+	DEFINES += -DUSE_PPC_HW_AES -DUSE_PPC_GCM
+	EXTRA_SRCS += gcm-ppc.c
+	ASFILES +=  ppc8-ghash.s
+endif # ppc64le
 endif # Linux
 
 ifeq ($(OS_TARGET),AIX)

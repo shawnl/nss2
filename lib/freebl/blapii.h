@@ -54,10 +54,10 @@ SEC_END_PROTOS
 #endif
 
 /* Alignment helpers. */
-#if defined(_WINDOWS) && defined(NSS_X86_OR_X64)
+#if defined(_WINDOWS) && (defined(NSS_X86_OR_X64) || defined(__powerpc__) || defined(__powerpc64))
 #define pre_align __declspec(align(16))
 #define post_align
-#elif defined(NSS_X86_OR_X64)
+#elif defined(NSS_X86_OR_X64) || defined(__powerpc__) || defined(__powerpc64)
 #define pre_align
 #define post_align __attribute__((aligned(16)))
 #else
@@ -86,5 +86,7 @@ PRBool arm_aes_support();
 PRBool arm_pmull_support();
 PRBool arm_sha1_support();
 PRBool arm_sha2_support();
+PRBool ppc_207_support();
+PRBool ppc_vcrypto_support();
 
 #endif /* _BLAPII_H_ */

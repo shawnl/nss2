@@ -704,7 +704,7 @@ s_mpi_getProcessorLineSize()
 #define MPI_GET_PROCESSOR_LINE_SIZE_DEFINED 1
 #endif
 
-#if defined(__ppc64__)
+#if (defined(__ppc64__) || defined(__powerpc64__))
 /*
  *  Sigh, The PPC has some really nice features to help us determine cache
  *  size, since it had lots of direct control functions to do so. The POWER
@@ -719,6 +719,10 @@ s_mpi_getProcessorLineSize()
  *  these programs happy. dcbzl work if 64 bit instructions are supported.
  *  If you know 64 bit instructions are supported, and that stack is
  *  write-back, you can use this code.
+ *
+ *  August 2019: Only the G5 implemented dcbzl (which never made it into PowerISA),
+ *  and dcbz is no longer hindered by said broken programs. This mistake did not cause
+ *  this to fail to build, because GCC on Linux does not define __ppc64__.
  */
 #include "memory.h"
 
@@ -726,10 +730,8 @@ s_mpi_getProcessorLineSize()
 static inline void
 dcbzl(char *array)
 {
-    register char *a asm("r2") = array;
-    __asm__ __volatile__("dcbzl %0,r0"
-                         : "=r"(a)
-                         : "0"(a));
+    __asm__ __volatile__("dcbz 0,%0"
+                         :: "r"(array));
 }
 
 #define PPC_DO_ALIGN(x, y) ((char *)((((long long)(x)) + ((y)-1)) & ~((y)-1)))
