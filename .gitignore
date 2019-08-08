@@ -22,4 +22,5 @@ fuzz/out
 lib/freebl/OBJS/*
 lib/ssl/OBJS/*
 lib/*/OBJS/*
+lib/*/*/OBJS/*
 cmd/*/OBJS/*
