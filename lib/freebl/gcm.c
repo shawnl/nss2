@@ -86,7 +86,7 @@ gcmHash_InitContext(gcmHashContext *ghash, const unsigned char *H, PRBool sw)
 
     ghash->h_low = get64(H + 8);
     ghash->h_high = get64(H);
-    if (0 && !sw) {
+    if (clmul_support() && !sw) {
         rv = gcm_HashInit_hw(ghash);
     } else {
 /* We fall back to the software implementation if we can't use / don't
