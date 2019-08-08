@@ -20,3 +20,6 @@ fuzz/corpus
 fuzz/out
 .chk
 lib/freebl/OBJS/*
+lib/ssl/OBJS/*
+lib/*/OBJS/*
+cmd/*/OBJS/*
