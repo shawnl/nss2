@@ -5,5 +5,7 @@
 perl ghashp8-ppc.pl linux64le ppc8-ghash.S
 perl ghashp8-ppc.pl linux64 ppc8-ghash-be.S
 perl ghashp8-ppc.pl linux32 ppc8-ghash-32.S
-
+perl aesp8-ppc.pl linux64le ppc8-aes.S
+perl aesp8-ppc.pl linux64 ppc8-aes-be.S
+perl aesp8-ppc.pl linux32 ppc8-aes-32.S
 
