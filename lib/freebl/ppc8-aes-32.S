@@ -1229,7 +1229,6 @@ aes_p8_ctr32_encrypt_blocks:
 
 	neg	11,3
 	lvsl	10,0,6
-	lwz	9,240(6)
 
 	lvsr	6,0,11
 	lvx	5,0,3

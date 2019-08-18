@@ -60,15 +60,19 @@ typedef void AESBlockFunc(AESContext *cx,
  * worker_cx   - the context for worker and destroy
  * isBlock     - is the mode of operation a block cipher or a stream cipher?
  */
-struct AESContextStr {
+pre_align struct AESContextStr {
     /* NOTE: Offsets to members in this struct are hardcoded in assembly.
      * Don't change the struct without updating intel-aes.s and intel-gcm.s. */
     union {
 #if defined(NSS_X86_OR_X64)
         __m128i keySchedule[15];
 #endif
+        // 128-bit  big-endians
         PRUint32 expandedKey[RIJNDAEL_MAX_EXP_KEY_SIZE];
     };
+#if defined(USE_PPC_HW_AES) && defined(__LITTLE_ENDIAN__)
+        PRUint32 expandedKeyLE[RIJNDAEL_MAX_EXP_KEY_SIZE];
+#endif
     unsigned int Nb;
     unsigned int Nr;
     freeblCipherFunc worker;
@@ -78,6 +82,6 @@ struct AESContextStr {
     PRBool isBlock;
     int mode;
     void *mem; /* Start of the allocated memory to free. */
-};
+} post_align;
 
 #endif /* _RIJNDAEL_H_ */

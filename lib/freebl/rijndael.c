@@ -337,6 +337,21 @@ rijndael_key_expansion7(AESContext *cx, const unsigned char *key, unsigned int N
     }
 }
 
+#ifdef USE_PPC_HW_AES
+static void
+rijndael_key_expansion_endian(AESContext *cx)
+{
+#ifdef __LITTLE_ENDIAN__
+    for (int i = 0; i < 15; i++) {
+        cx->expandedKeyLE[i*4] = __builtin_bswap32(cx->expandedKey[i*4+3]);
+        cx->expandedKeyLE[i*4+1] = __builtin_bswap32(cx->expandedKey[i*4+2]);
+        cx->expandedKeyLE[i*4+2] = __builtin_bswap32(cx->expandedKey[i*4+1]);
+        cx->expandedKeyLE[i*4+3] = __builtin_bswap32(cx->expandedKey[i*4]);
+    }
+#endif
+}
+#endif
+
 /* rijndael_key_expansion
  *
  * Generate the expanded key from the key input by the user.
@@ -351,6 +366,9 @@ rijndael_key_expansion(AESContext *cx, const unsigned char *key, unsigned int Nk
     unsigned int round_key_words = cx->Nb * (cx->Nr + 1);
     if (Nk == 7) {
         rijndael_key_expansion7(cx, key, Nk);
+#ifdef USE_PPC_HW_AES
+        rijndael_key_expansion_endian(cx);
+#endif
         return;
     }
     W = cx->expandedKey;
@@ -411,6 +429,9 @@ rijndael_key_expansion(AESContext *cx, const unsigned char *key, unsigned int Nk
             *pW = W[i - Nk] ^ tmp;
         }
     }
+#ifdef USE_PPC_HW_AES
+    rijndael_key_expansion_endian(cx);
+#endif
 }
 
 /* rijndael_invkey_expansion
@@ -700,10 +721,13 @@ rijndael_encryptECB(AESContext *cx, unsigned char *output,
 {
     AESBlockFunc *encryptor;
 
+#ifdef NSS_X86_OR_X64
     if (aesni_support()) {
         /* Use hardware acceleration for normal AES parameters. */
         encryptor = &rijndael_native_encryptBlock;
-    } else {
+    } else
+#endif
+    {
         encryptor = &rijndael_encryptBlock128;
     }
     while (inputLen > 0) {
@@ -847,7 +871,11 @@ aes_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
+#ifdef NSS_X86_OR_X64
     use_hw_aes = aesni_support() && (keysize % 8) == 0;
+#else
+    use_hw_aes = 0;
+#endif
     /* Nb = (block size in bits) / 32 */
     cx->Nb = AES_BLOCK_SIZE / 4;
     /* Nk = (key size in bits) / 32 */

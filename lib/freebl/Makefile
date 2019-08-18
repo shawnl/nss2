@@ -251,7 +251,7 @@ ifeq ($(CPU_ARCH),ppc64le)
 	DEFINES += -DNSS_NO_INIT_SUPPORT
 	DEFINES += -DUSE_PPC_HW_AES -DUSE_PPC_GCM
 	EXTRA_SRCS += gcm-ppc.c
-	ASFILES +=  ppc8-ghash.s
+	ASFILES +=  ppc8-ghash.s ppc8-aes.s
 endif # ppc64le
 endif # Linux
 

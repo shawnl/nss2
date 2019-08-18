@@ -16,6 +16,14 @@
 #include "pkcs11t.h"
 
 #include <limits.h>
+#include <endian.h>
+
+#ifdef USE_PPC_HW_AES
+#include "rijndael.h"
+void aes_p8_ctr32_encrypt_blocks(const unsigned char *in, unsigned char *out,
+                                 size_t len, const void *key,
+                                 const unsigned char ivec[16], long unused, int rounds);
+#endif
 
 /* Forward declarations */
 SECStatus gcm_HashInit_hw(gcmHashContext *ghash);
@@ -580,6 +588,7 @@ GCM_CreateContext(void *context, freeblCipherFunc cipher,
     gcm->tagBits = gcmParams->ulTagBits; /* save for final step */
     /* calculate the final tag key. NOTE: gcm->tagKey is zero to start with.
      * if this assumption changes, we would need to explicitly clear it here */
+    /* Does not need to use HW version. */
     rv = CTR_Update(&gcm->ctr_context, gcm->tagKey, &tmp, AES_BLOCK_SIZE,
                     gcm->tagKey, AES_BLOCK_SIZE, AES_BLOCK_SIZE);
     if (rv != SECSuccess) {
@@ -693,8 +702,30 @@ GCM_EncryptUpdate(GCMContext *gcm, unsigned char *outbuf,
         return SECFailure;
     }
 
-    rv = CTR_Update(&gcm->ctr_context, outbuf, outlen, maxout,
-                    inbuf, inlen, AES_BLOCK_SIZE);
+#ifdef USE_PPC_HW_AES
+    if (ppc_vcrypto_support()) {
+        AESContext *ctx = gcm->ctr_context.context;
+        uint32_t counter;
+#ifdef __LITTLE_ENDIAN__
+        aes_p8_ctr32_encrypt_blocks(inbuf, outbuf, inlen / 16, ctx->expandedKeyLE,  gcm->ctr_context.counter, 0, ctx->Nr);
+#else
+        aes_p8_ctr32_encrypt_blocks(inbuf, outbuf, inlen / 16, ctx->expandedKey,  gcm->ctr_context.counter, 0, ctx->Nr);
+#endif
+        counter = be32toh(*(uint32_t*)&gcm->ctr_context.counter[12]);
+        if (counter + (inlen / 16) < counter) {
+            abort();
+            return SECFailure; // overflow of counter
+        }
+        counter += inlen / 16;
+        *(uint32_t*)&gcm->ctr_context.counter[12] = htobe32(counter);
+        *outlen = inlen;
+        rv = SECSuccess;
+    } else
+#endif
+    {
+        rv = CTR_Update(&gcm->ctr_context, outbuf, outlen, maxout,
+                        inbuf, inlen, AES_BLOCK_SIZE);
+    }
     if (rv != SECSuccess) {
         return SECFailure;
     }
@@ -771,6 +802,28 @@ GCM_DecryptUpdate(GCMContext *gcm, unsigned char *outbuf,
     }
     PORT_Memset(tag, 0, sizeof(tag));
     /* finish the decryption */
-    return CTR_Update(&gcm->ctr_context, outbuf, outlen, maxout,
-                      inbuf, inlen, AES_BLOCK_SIZE);
+#if USE_PPC_HW_AES
+    if (ppc_vcrypto_support()) {
+        AESContext *ctx = gcm->ctr_context.context;
+        uint32_t counter;
+#ifdef __LITTLE_ENDIAN__
+        aes_p8_ctr32_encrypt_blocks(inbuf, outbuf, inlen / 16, ctx->expandedKeyLE,  gcm->ctr_context.counter, 0, ctx->Nr);
+#else
+        aes_p8_ctr32_encrypt_blocks(inbuf, outbuf, inlen / 16, ctx->expandedKey,  gcm->ctr_context.counter, 0, ctx->Nr);
+#endif
+        counter = be32toh(*(uint32_t*)&gcm->ctr_context.counter[12]);
+        if (counter + (inlen / 16) < counter) {
+            abort();
+            return SECFailure; // overflow of counter
+        }
+        counter += inlen / 16;
+        *(uint32_t*)&gcm->ctr_context.counter[12] = htobe32(counter);
+        *outlen = inlen;
+        return SECSuccess;
+    } else
+#endif
+    {
+        return CTR_Update(&gcm->ctr_context, outbuf, outlen, maxout,
+                        inbuf, inlen, AES_BLOCK_SIZE);
+    }
 }
