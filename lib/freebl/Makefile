@@ -243,9 +243,15 @@ ifeq ($(CPU_ARCH),arm)
     MPI_SRCS += mpi_arm.c
 endif
 ifeq ($(CPU_ARCH),ppc)
+        DEFINES += -DUSE_PPC_HW_AES -DUSE_PPC_GCM
+        EXTRA_SRCS += gcm-ppc.c
+        ASFILES +=  ppc8-ghash-32.s ppc8-aes-32.s
 endif # ppc
 ifeq ($(CPU_ARCH),ppc64)
 	DEFINES += -DNSS_NO_INIT_SUPPORT
+        DEFINES += -DUSE_PPC_HW_AES -DUSE_PPC_GCM
+        EXTRA_SRCS += gcm-ppc.c
+        ASFILES +=  ppc8-ghash-be.s ppc8-aes-be.s
 endif # ppc64
 ifeq ($(CPU_ARCH),ppc64le)
 	DEFINES += -DNSS_NO_INIT_SUPPORT
