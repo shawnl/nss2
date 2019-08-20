@@ -24,8 +24,8 @@ extern void Hacl_Chacha20_Vec128_chacha20(uint8_t *output, uint8_t *plain,
 extern void Hacl_Chacha20_chacha20(uint8_t *output, uint8_t *plain, uint32_t len,
                                    uint8_t *k, uint8_t *n1, uint32_t ctr);
 
-#if defined(HAVE_INT128_SUPPORT) && (defined(NSS_X86_OR_X64) || defined(__aarch64__))
-/* Use HACL* Poly1305 on 64-bit Intel and ARM */
+#if defined(HAVE_INT128_SUPPORT) && (defined(NSS_X86_OR_X64) || defined(__aarch64__)) || defined(__powerpc64__)
+/* Use HACL* Poly1305 on 64-bit Intel and ARM and ppc64 */
 #include "verified/Hacl_Poly1305_64.h"
 #define NSS_POLY1305_64 1
 #define Hacl_Poly1305_update Hacl_Poly1305_64_update
@@ -162,7 +162,7 @@ void
 ChaCha20Xor(uint8_t *output, uint8_t *block, uint32_t len, uint8_t *k,
             uint8_t *nonce, uint32_t ctr)
 {
-    if (ssse3_support() || arm_neon_support()) {
+    if (ssse3_support() || arm_neon_support() || ppc_207_support()) {
         Hacl_Chacha20_Vec128_chacha20(output, block, len, k, nonce, ctr);
     } else {
         Hacl_Chacha20_chacha20(output, block, len, k, nonce, ctr);

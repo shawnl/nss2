@@ -242,7 +242,7 @@ ifeq ($(CPU_ARCH),arm)
     DEFINES += -DSHA_NO_LONG_LONG # avoid 64-bit arithmetic in SHA512
     MPI_SRCS += mpi_arm.c
 endif
-ifeq ($(CPU_ARCH),ppc)
+ifeq ($(CPU_ARCH),ppc32)
         DEFINES += -DUSE_PPC_HW_AES -DUSE_PPC_GCM
         EXTRA_SRCS += gcm-ppc.c
         ASFILES +=  ppc8-ghash-32.s ppc8-aes-32.s
@@ -539,7 +539,15 @@ ifndef NSS_DISABLE_CHACHAPOLY
         ifeq ($(CPU_ARCH),aarch64)
             EXTRA_SRCS += Hacl_Poly1305_64.c
         else
-            EXTRA_SRCS += Hacl_Poly1305_32.c
+            ifeq ($(CPU_ARCH),ppc64le)
+                EXTRA_SRCS += Hacl_Poly1305_64.c
+            else
+                ifeq ($(CPU_ARCH),ppc64)
+                    EXTRA_SRCS += Hacl_Poly1305_64.c
+                else
+                    EXTRA_SRCS += Hacl_Poly1305_32.c
+                endif
+            endif
         endif
     endif # x86_64
 
